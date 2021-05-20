@@ -19,3 +19,9 @@ Extract your iMessage attachments on Mac
 * -v, --verbose: Enable verbose output
 
 * -f, --force_reload: Force iMessage database reload.
+
+### Process
+
+1. Copy chat.db from '~/Library/Messages' to 'data/' folder 
+2. Process database, and obtain message attachment locations
+3. Move attachments (matching accepted_file_types) into 'output/thread/' folder, where 'thread' is the phone number of the thread the attachment is located
