@@ -1,13 +1,13 @@
+import argparse
 import datetime
 import os
 import platform
-import pandas as pd
-import re
 import shutil
 import sqlite3
-import tzlocal
 
+import pandas as pd
 from tqdm import tqdm
+import tzlocal
 
 
 def is_post_high_sierra():
@@ -62,28 +62,23 @@ def examine_filetypes(accepted):
     missing = set()
     for f in all_files:
         ext = os.path.splitext(f)[1]
-        if ext not in accepted:
+        if ext.lower() not in accepted:
             missing.add(ext)
 
     print(f"Missing extentions: {missing}")
 
 
-def main():
+def main(args):
     accepted_file_types = set(
         [
-            ".png",
-            ".JPEG",
-            ".mp4",
+            ".heic",
             ".jpg",
             ".jpeg",
-            ".HEIC",
-            ".JPG",
-            ".svg",
             ".mov",
+            ".mp4",
+            ".png",
+            ".svg",
             ".tiff",
-            ".PNG",
-            ".MOV",
-            ".heic",
         ]
     )
     examine_filetypes(accepted_file_types)
@@ -100,7 +95,7 @@ def main():
 
     for f in files:
         new_path = os.path.join(data_path, f)
-        if os.path.exists(new_path):
+        if os.path.exists(new_path) and not args.force_reload:
             continue
         og_data = os.path.join(home_path, "Library/Messages", f)
         shutil.copyfile(og_data, new_path)
@@ -137,30 +132,36 @@ def main():
 
     skipped = []
     sizes = []
-    for phone, df in tqdm(grouped):
+    tq = tqdm(grouped, desc="Processing thread ()")
+    for phone, df in tq:
+        tq.desc = f"Processing thread ({phone})"
         sub_folder = os.path.join(output_path, phone)
         if not os.path.exists(sub_folder):
             os.makedirs(sub_folder)
 
-        size_mb = df["total_bytes"].sum()*1e-6
+        size_mb = df["total_bytes"].sum() * 1e-6
         sizes.append(f"{phone}, {size_mb:.0f} MB\n")
         all_paths = list(df["filename"])
         for og_path in all_paths:
             if not og_path:
                 continue
             ext = os.path.splitext(og_path)[1]
-            if ext not in accepted_file_types:
+            if ext.lower() not in accepted_file_types:
                 continue
             og_path = og_path.replace("~", home_path)
             if not os.path.exists(og_path):
-                print(f"Skipped \'{og_path}\' in \'{phone}\'")
+                if args.verbose:
+                    print(f"Skipped '{og_path}' in '{phone}'")
                 skipped.append(f"{phone},{og_path}\n")
                 continue
             file_name = os.path.basename(og_path)
             new_path = os.path.join(sub_folder, file_name)
             shutil.copy2(og_path, new_path)
 
+    print("Done!")
+    print(f"Found {len(messages)} images")
     if skipped:
+        print(f"Skipped {len(skipped)} images (logged in skipped.csv)")
         f = open("skipped.csv", "w")
         f.writelines(skipped)
         f.close()
@@ -169,8 +170,24 @@ def main():
     f.writelines(sizes)
     f.close()
 
-    print(f"Found: {len(messages)} images")
-
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        description="Extract all attachements from iMessage on Mac."
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbose output",
+    )
+    parser.add_argument(
+        "-f",
+        "--force_reload",
+        action="store_true",
+        help="Force iMessage database reload.",
+    )
+
+    args = parser.parse_args()
+
+    main(args)
