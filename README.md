@@ -7,7 +7,7 @@ Extract your iMessage attachments on Mac
 
 ## Usage
 
-    pip3 install -R requirements.txt
+    pip3 install -r requirements.txt
 
     python3 main.py [-h] [-v] [-f]
 
@@ -18,7 +18,7 @@ Extract your iMessage attachments on Mac
 
 * -v, --verbose: Enable verbose output
 
-* -f, --force_reload: Force iMessage database reload.
+* -f, --force_reload: Force iMessage database reload
 
 ### Process
 
